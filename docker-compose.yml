@@ -1,0 +1,84 @@
+version: "3"
+
+services:
+  namenode:
+    build:
+      context: ./base
+      dockerfile: Dockerfile
+      target: namenode
+    container_name: hadoop_namenode
+    restart: always
+    ports:
+      - 19870:9870
+      - 19000:9000
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+    environment:
+      - CLUSTER_NAME=test
+    env_file:
+      - ./hadoop.env
+
+  datanode:
+    build: 
+      context: ./base
+      dockerfile: Dockerfile
+      target: datanode
+    container_name: hadoop_datanode
+    restart: always
+    ports:
+      - 19864:9864
+    volumes:
+      - hadoop_datanode:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file:
+      - ./hadoop.env
+  
+  resourcemanager:
+    build: 
+      context: ./base
+      dockerfile: Dockerfile
+      target: resourcemanager
+    container_name: hadoop_resourcemanager
+    restart: always
+    ports:
+      - 18088:8088
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864"
+    env_file:
+      - ./hadoop.env
+  
+  nodemanager:
+    build: 
+      context: ./base
+      dockerfile: Dockerfile
+      target: nodemanager
+    container_name: hadoop_nodemanager
+    restart: always
+    ports:
+      - 18042:8042
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
+    env_file:
+      - ./hadoop.env
+      
+  historyserver:
+    build: 
+      context: ./base
+      dockerfile: Dockerfile
+      target: historyserver
+    container_name: hadoop_historyserver
+    restart: always
+    ports:
+      - 18188:8188
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
+    volumes:
+      - hadoop_historyserver:/hadoop/yarn/timeline
+    env_file:
+      - ./hadoop.env
+
+volumes:
+    hadoop_namenode:
+    hadoop_datanode:
+    hadoop_historyserver:
