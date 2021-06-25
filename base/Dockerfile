@@ -6,13 +6,19 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
       netcat \
       gnupg \
       libsnappy-dev \
+      vim \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -O https://dist.apache.org/repos/dist/release/hadoop/common/KEYS
 RUN gpg --import KEYS
 
-ENV HADOOP_VERSION 3.3.1
-ENV HADOOP_URL https://www.apache.org/dist/hadoop/common/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz
+ARG HADOOP_VERSION
+ARG HADOOP_MAJOR_VERSION
+ARG SPARK_VERSION
+ARG HIVE_VERSION
+
+ENV HADOOP_VERSION ${HADOOP_VERSION}
+ENV HADOOP_URL https://archive.apache.org/dist/hadoop/common/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz
 
 RUN set -x \
     && curl -fSL "$HADOOP_URL" -o /tmp/hadoop.tar.gz \
@@ -21,17 +27,37 @@ RUN set -x \
     && tar -xvf /tmp/hadoop.tar.gz -C /opt/ \
     && rm /tmp/hadoop.tar.gz*
 
+ENV SPARK_VERSION ${SPARK_VERSION}
+ENV HADOOP_MAJOR_VERSION ${HADOOP_MAJOR_VERSION}
+ENV SPARK_URL https://mirror.navercorp.com/apache/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_MAJOR_VERSION}.tgz
+
+RUN set -x \
+    && curl -fSL "${SPARK_URL}" -o /tmp/spark.tar.gz \
+    && tar -xvf /tmp/spark.tar.gz -C /opt/ \
+    && rm /tmp/spark.tar.gz*
+
+ENV HIVE_VERSION ${HIVE_VERSION}
+ENV HIVE_URL https://mirror.navercorp.com/apache/hive/hive-${HIVE_VERSION}/apache-hive-${HIVE_VERSION}-bin.tar.gz
+
+RUN set -x \
+    && curl -fSL "${HIVE_URL}" -o /tmp/hive.tar.gz \
+    && tar -xvf /tmp/hive.tar.gz -C /opt/ \
+    && rm /tmp/hive.tar.gz*
+
 RUN ln -s /opt/hadoop-$HADOOP_VERSION/etc/hadoop /etc/hadoop
 
 RUN mkdir /opt/hadoop-$HADOOP_VERSION/logs
-
 RUN mkdir /hadoop-data
 
 ENV HADOOP_HOME=/opt/hadoop-$HADOOP_VERSION
 ENV HADOOP_CONF_DIR=/etc/hadoop
+ENV SPARK_HOME=/opt/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_MAJOR_VERSION}
+ENV HIVE_HOME=/opt/apache-hive-${HIVE_VERSION}-bin
+
 ENV MULTIHOMED_NETWORK=1
 ENV USER=root
-ENV PATH $HADOOP_HOME/bin/:$PATH
+ENV PATH $HADOOP_HOME/bin/:$SPARK_HOME/bin/:${HIVE_HOME}/bin:$PATH
+
 
 ADD entrypoint.sh /entrypoint.sh
 
@@ -116,3 +142,10 @@ RUN sed -i 's/\r$//g' /run.sh
 EXPOSE 8188
 
 CMD ["/run.sh"]
+
+# CONSOLE
+FROM base as console
+
+WORKDIR /work
+
+CMD ["echo 'This container is for console login. Try docker-compose run console bash'"]
