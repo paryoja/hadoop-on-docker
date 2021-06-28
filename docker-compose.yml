@@ -21,8 +21,9 @@ services:
       <<: *version
     container_name: hadoop_namenode
     ports:
-      - 19870:9870
-      - 19000:9000
+      - 9000:9000
+      - 9870:9870   # hadoop 3
+      - 50070:50070 # hadoop 2
     volumes:
       - hadoop_namenode:/hadoop/dfs/name
     environment:
@@ -37,11 +38,13 @@ services:
       <<: *version
     container_name: hadoop_datanode
     ports:
-      - 19864:9864
+      - 9864:9864 # Hadoop 3
+      - 50075:50075 # Hadoop 2
     volumes:
       - hadoop_datanode:/hadoop/dfs/data
     environment:
-      SERVICE_PRECONDITION: "namenode:9870"
+      # SERVICE_PRECONDITION: "namenode:9870" # hadoop3
+      SERVICE_PRECONDITION: "namenode:50070" # hadoop2
   
   resourcemanager:
     <<: *service
@@ -52,9 +55,10 @@ services:
       <<: *version
     container_name: hadoop_resourcemanager
     ports:
-      - 18088:8088
+      - 8088:8088
     environment:
-      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864"
+      # SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864" # Hadoop 3
+      SERVICE_PRECONDITION: "namenode:9000 namenode:50070 datanode:50075"
   
   nodemanager:
     <<: *service
@@ -65,9 +69,10 @@ services:
       <<: *version
     container_name: hadoop_nodemanager
     ports:
-      - 18042:8042
+      - 8042:8042
     environment:
-      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
+      # SERVICE_PRECONDITION: "namenode:9000 datanode:9864 resourcemanager:8088" # Hadoop 3
+      SERVICE_PRECONDITION: "namenode:9000 datanode:50075 resourcemanager:8088" # Hadoop 2
       
   historyserver:
     <<: *service
@@ -78,9 +83,10 @@ services:
       <<: *version
     container_name: hadoop_historyserver
     ports:
-      - 18188:8188
+      - 8188:8188
     environment:
-      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
+      # SERVICE_PRECONDITION: "namenode:9000 datanode:9864 resourcemanager:8088" # Hadoop 3
+      SERVICE_PRECONDITION: "namenode:9000 datanode:50075 resourcemanager:8088" # Hadoop 2
     volumes:
       - hadoop_historyserver:/hadoop/yarn/timeline
   

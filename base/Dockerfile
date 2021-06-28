@@ -69,7 +69,7 @@ ENTRYPOINT ["/entrypoint.sh"]
 # NAMENODE
 FROM base as namenode
 
-HEALTHCHECK CMD curl -f http://localhost:9870/ || exit 1
+HEALTHCHECK CMD curl -f http://localhost:50070/ || exit 1
 
 ENV HDFS_CONF_dfs_namenode_name_dir=file:///hadoop/dfs/name
 RUN mkdir -p /hadoop/dfs/name
@@ -79,14 +79,18 @@ ADD namenode/run.sh /run.sh
 RUN chmod a+x /run.sh
 RUN sed -i 's/\r$//g' /run.sh
 
+# FOR Hadoop 3
 EXPOSE 9870
+# FOR Hadoop 2
+EXPOSE 50070
 
 CMD ["/run.sh"]
 
 # DATANODE
 FROM base as datanode
 
-HEALTHCHECK CMD curl -f http://localhost:9864/ || exit 1
+# HEALTHCHECK CMD curl -f http://localhost:9864/ || exit 1
+HEALTHCHECK CMD curl -f http://localhost:50075/ || exit 1
 
 ENV HDFS_CONF_dfs_datanode_data_dir=file:///hadoop/dfs/data
 RUN mkdir -p /hadoop/dfs/data
@@ -145,6 +149,12 @@ CMD ["/run.sh"]
 
 # CONSOLE
 FROM base as console
+
+RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | tee /etc/apt/sources.list.d/sbt.list
+RUN echo "deb https://repo.scala-sbt.org/scalasbt/debian /" | tee /etc/apt/sources.list.d/sbt_old.list
+RUN curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | apt-key add
+RUN apt-get update
+RUN apt-get install sbt
 
 WORKDIR /work
 
